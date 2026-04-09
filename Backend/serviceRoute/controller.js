@@ -85,5 +85,28 @@ const getAllPotholes = async (req, res) => {
     }
 };
 
-module.exports = { reportPothole, getAllPotholes };
+const deletePothole = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const deleted = await Pothole.findByIdAndDelete(id);
+        if (!deleted) {
+            return res.status(404).json({
+                success: false,
+                message: 'Pothole report not found'
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: 'Pothole report deleted successfully'
+        });
+    } catch (err) {
+        console.error('[deletePothole] Error:', err.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to delete pothole. Please try again.',
+        });
+    }
+};
+
+module.exports = { reportPothole, getAllPotholes, deletePothole };
 

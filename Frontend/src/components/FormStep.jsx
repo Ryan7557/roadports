@@ -44,13 +44,13 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
     surburb: '', // user's spelling
     city: '',
     province: '',
-    country: 'South Africa',
+    country: 'Zimbabwe',
     name: '',
     phone: '',
     email: ''
   });
 
-  const [coords, setCoords] = useState([-26.2041, 28.0473]); // Default JHB
+  const [coords, setCoords] = useState([-17.8248, 31.0530]); // Default Harare, Zimbabwe
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -97,7 +97,7 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
           surburb: addr.suburb || addr.neighbourhood || addr.village || '',
           city: addr.city || addr.town || addr.county || '',
           province: addr.state || addr.province || '',
-          country: addr.country || 'South Africa'
+          country: addr.country || 'Zimbabwe'
         }));
       }
     } catch (err) {
@@ -234,7 +234,7 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
                   <input 
                     required type="text" name="province" value={formData.province} onChange={handleChange}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-shadow"
-                    placeholder="Gauteng"
+                    placeholder="Harare Province"
                   />
                </div>
                <div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, Navigation, AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { RefreshCw, Navigation, AlertTriangle, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react';
 
 const SEVERITY_COLORS = {
   critical: 'bg-red-500 text-white',
@@ -46,6 +46,19 @@ export default function Dashboard() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this pothole report?')) return;
+    
+    try {
+      const res = await axios.delete(`/api/potholes/${id}`);
+      if (res.data?.success) {
+        setPotholes(prev => prev.filter(p => p._id !== id));
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete pothole report');
+    }
+  };
+
   useEffect(() => {
     fetchPotholes();
   }, []);
@@ -81,7 +94,7 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {potholes.map((p) => (
-             <PotholeCard key={p._id} pothole={p} />
+             <PotholeCard key={p._id} pothole={p} onDelete={handleDelete} />
           ))}
 
           {!loading && potholes.length === 0 && (
@@ -96,7 +109,7 @@ export default function Dashboard() {
   );
 }
 
-function PotholeCard({ pothole }) {
+function PotholeCard({ pothole, onDelete }) {
   const { imageUrl, address, verification, status, createdAt } = pothole;
   const severityStr = verification?.severity || 'low';
   const isAIConfirmed = verification?.isPothole;
@@ -106,8 +119,17 @@ function PotholeCard({ pothole }) {
   const formattedDate = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
-      <div className="relative h-48 bg-gray-100 overflow-hidden group">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col relative group">
+      {/* Delete Button (Visible on Hover) */}
+      <button 
+        onClick={() => onDelete(pothole._id)}
+        className="absolute top-3 left-3 z-10 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Delete Report"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+
+      <div className="relative h-48 bg-gray-100 overflow-hidden">
         <img 
           src={getImageUrl(imageUrl)} 
           alt="Pothole"
