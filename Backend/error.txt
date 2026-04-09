@@ -1,0 +1,15 @@
+﻿Γùç injecting env (2) from .env // tip: Γîÿ override existing { override: true }
+Server is running on port: 5001
+node : MongoDB Connection Error, querySrv 
+ECONNREFUSED _mongodb._tcp.roadportscluster.u
+62zm2w.mongodb.net
+At line:1 char:1
++ node Index.js 2>&1 | Out-File error.txt 
+-Encoding utf8
++ ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified:  
+   (MongoDB Connect...m2w.mongodb.net:Strin  
+  g) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandE 
+   rror
+ 
