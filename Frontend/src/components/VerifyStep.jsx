@@ -54,7 +54,7 @@ export default function VerifyStep({ file, onVerifySuccess, onReset }) {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded"
         },
-        timeout: 10000 
+        timeout: 30000 
       });
 
       const predictions = res.data.predictions || [];
@@ -111,8 +111,8 @@ export default function VerifyStep({ file, onVerifySuccess, onReset }) {
 
       {status === 'analyzing' && (
         <div className="text-center">
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">Analyzing Image...</h3>
-          <p className="text-gray-500">Our AI is verifying if this is a pothole</p>
+          <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase tracking-tighter italic">Analyzing Image...</h3>
+          <p className="text-gray-500 font-medium">Our AI is verifying if this is a road anomaly</p>
         </div>
       )}
 
@@ -125,11 +125,11 @@ export default function VerifyStep({ file, onVerifySuccess, onReset }) {
 
       {status === 'failed' && (
         <div className="text-center text-red-600">
-          <h3 className="text-2xl font-bold mb-2">No Pothole Detected</h3>
-          <p className="text-gray-600 mb-6">Our AI couldn't find a clear pothole in this image. Please ensure the image is well-lit and the pothole is clearly visible.</p>
+          <h3 className="text-3xl font-black mb-2 uppercase tracking-tighter italic">No Anomaly Detected</h3>
+          <p className="text-gray-600 mb-8 max-w-sm font-medium">Our AI couldn't find a clear pothole in this image. Review the photo and try again.</p>
           <RippleButton 
             onClick={onReset}
-            className="px-6 py-6 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-colors"
+            className="px-8 py-6 bg-red-50 text-red-600 rounded-xl font-bold uppercase tracking-widest hover:bg-red-100 transition-all border border-red-200"
           >
             <RippleButtonRipples />
             Try Another Image
@@ -140,8 +140,8 @@ export default function VerifyStep({ file, onVerifySuccess, onReset }) {
       {status === 'error' && (
         <div className="text-center text-amber-600">
           <AlertTriangle className="w-16 h-16 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-2">Verification Service Offline</h3>
-          <p className="text-gray-600 mb-6">There was an error reaching the AI service. We let you proceed for now.</p>
+          <h3 className="text-3xl font-black mb-2 uppercase tracking-tighter italic text-amber-600">AI Proxy Offline</h3>
+          <p className="text-gray-600 mb-8 max-w-sm font-medium">We hit a snag reaching the AI service. You can skip and proceed manually.</p>
           <RippleButton 
             onClick={onVerifySuccess}
             className="px-6 py-6 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors shadow-md"

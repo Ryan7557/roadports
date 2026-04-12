@@ -22,6 +22,9 @@ const potholeSchema = z.object({
     email: z.string().email().optional().or(z.literal('')),
     name: z.string().max(100).optional().or(z.literal('')),
     phone: z.string().max(20).optional().or(z.literal('')),
+
+    // Firebase Auth UID
+    userId: z.string().min(1)
 });
 
 module.exports = { potholeSchema };

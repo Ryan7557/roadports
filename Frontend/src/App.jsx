@@ -1,16 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { auth } from './firebase';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
+import gsap from 'gsap';
 import UploadStep from './components/UploadStep';
 import VerifyStep from './components/VerifyStep';
 import FormStep from './components/FormStep';
 import Dashboard from './components/Dashboard';
+import PillNav from './components/PillNav';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
 import { CheckCircle2, RefreshCw, LayoutDashboard, Flag } from 'lucide-react';
 
 function App() {
   const [view, setView] = useState('report');
+  const [user, setUser] = useState(null);
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [verificationData, setVerificationData] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error("Login failed", err);
+    }
+  };
+
+  const handleLogout = () => signOut(auth);
 
   const handleFileSelect = (selectedFile) => {
     setFile(selectedFile);
@@ -33,27 +56,77 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50">
-      {/* Header */}
-      <header className="w-full text-black p-4 px-6 flex justify-between items-center z-50 relative">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold tracking-tight hidden sm:block">Roadports AI</h1>
-          <h1 className="text-2xl font-bold tracking-tight sm:hidden">RPAI</h1>
-          <span className="text-xs bg-green px-2.5 py-1 rounded-full font-medium shadow-inner hidden md:inline-block">Pothole Shield</span>
+
+      {/* Main Header Layout */}
+      <header className="w-full max-w-7xl px-6 h-24 flex items-center justify-between lg:grid lg:grid-cols-3 z-[1001] relative">
+
+        {/* Branding (Left) */}
+        <div className="flex items-center">
+          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-gray-900">ROADPORTS AI</h1>
         </div>
-        <nav className="flex gap-2">
-          <button onClick={() => setView('report')} className={`flex items-center gap-2 px-3 py-2 md:px-4 rounded-lg font-medium transition-colors ${view === 'report' ? 'bg-gray-200 text-black shadow-sm' : 'text-gray-700 hover:bg-gray-100'}`}>
-            <Flag className="w-4 h-4" /> <span className="hidden sm:inline">Report Feature</span>
-          </button>
-          <button onClick={() => setView('dashboard')} className={`flex items-center gap-2 px-3 py-2 md:px-4 rounded-lg font-medium transition-colors ${view === 'dashboard' ? 'bg-gray-200 text-black shadow-sm' : 'text-gray-700 hover:bg-gray-100'}`}>
-            <LayoutDashboard className="w-4 h-4" /> <span className="hidden sm:inline">Dashboard</span>
-          </button>
-        </nav>
+
+        {/* Navigation (Center - Desktop) */}
+        <div className="hidden lg:flex justify-center items-center">
+          <PillNav
+            logo={null}
+            logoAlt="Roadports"
+            items={[
+              { label: 'Report', href: 'report' },
+              { label: 'Dashboard', href: 'dashboard' }
+            ]}
+            activeHref={view}
+            baseColor="#fff"
+            pillColor="#000"
+            onItemClick={(item) => setView(item.href)}
+            className="!static !top-0 !w-auto"
+            initialLoadAnimation={false}
+          />
+        </div>
+
+        {/* Global User / Auth (Right) */}
+        <div className="flex items-center justify-end gap-4 relative z-[1002]">
+          {user ? (
+            <div className="flex items-center gap-3 bg-white/50 backdrop-blur-md p-1.5 pr-4 rounded-full border border-gray-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
+              <img src={user.photoURL} alt={user.displayName} className="w-8 h-8 rounded-full border border-white shadow-sm" />
+              <button
+                onClick={handleLogout}
+                className="text-xs font-bold text-gray-500 hover:text-red-500 uppercase tracking-wider transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="bg-green text-white px-5 py-2.5 rounded-full font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-green/20"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
       </header>
+
+      {/* Persistent Mobile Nav Bar (only visible on mobile) */}
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] flex justify-center">
+        <PillNav
+          logo={null}
+          items={[
+            { label: 'Report', href: 'report' },
+            { label: 'Dashboard', href: 'dashboard' }
+          ]}
+          activeHref={view}
+          baseColor="#000"
+          pillColor="#fff"
+          pillTextColor="#000"
+          onItemClick={(item) => setView(item.href)}
+          className="shadow-2xl"
+        />
+      </div>
 
       {/* Main Container */}
       {view === 'dashboard' ? (
         <div className="w-full max-w-7xl flex-1 flex mx-auto">
-          <Dashboard />
+          <Dashboard user={user} />
         </div>
       ) : (
         <main className="flex-1 w-full max-w-5xl p-4 md:p-6 mt-4 md:mt-8 flex flex-col items-center">
@@ -67,7 +140,8 @@ function App() {
             <StepDot active={step >= 3} text="Location" />
           </div>
 
-          <div className="w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[500px] flex items-stretch justify-center relative border border-gray-100">
+          <div className={`w-full rounded-2xl shadow-2xl overflow-hidden min-h-[500px] flex items-stretch justify-center relative border transition-all duration-700 
+            ${step === 3 ? 'bg-black border-white/5' : 'bg-white border-gray-100'}`}>
             {step === 1 && <UploadStep onFileSelect={handleFileSelect} />}
 
             {step === 2 && (
@@ -78,10 +152,11 @@ function App() {
               />
             )}
 
-            {step === 3 && (
+            {step === 3 && user && (
               <FormStep
                 file={file}
                 verificationData={verificationData}
+                user={user}
                 onSubmissionSuccess={handleSubmissionSuccess}
                 onCancel={handleReset}
               />

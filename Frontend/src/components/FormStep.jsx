@@ -26,6 +26,15 @@ function MapUpdater({ center }) {
   return null;
 }
 
+const createContextIcon = () => {
+  return L.divIcon({
+    className: 'bg-transparent border-none',
+    html: `<div style="background-color: #6b7280; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5); opacity: 0.8;"></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6]
+  });
+};
+
 // Intercepts map clicks to allow user to drop a pin manually
 function MapClicker({ setCoords, reverseGeocode }) {
   useMapEvents({
@@ -38,7 +47,7 @@ function MapClicker({ setCoords, reverseGeocode }) {
   return null;
 }
 
-export default function FormStep({ file, verificationData, onSubmissionSuccess, onCancel }) {
+export default function FormStep({ file, verificationData, user, onSubmissionSuccess, onCancel }) {
   const [formData, setFormData] = useState({
     street: '',
     surburb: '', // user's spelling
@@ -54,6 +63,22 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [nearbyPotholes, setNearbyPotholes] = useState([]);
+
+  useEffect(() => {
+    // Fetch reported potholes for map context
+    const fetchContextPotholes = async () => {
+      try {
+        const res = await axios.get('/api/potholes');
+        if (res.data?.success) {
+          setNearbyPotholes(res.data.data);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch nearby potholes for map context", err);
+      }
+    };
+    fetchContextPotholes();
+  }, []);
 
   // Geocode address when user stops typing for a moment
   useEffect(() => {
@@ -151,12 +176,21 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
         form.append('severity', verificationData.severity);
       }
 
-      // Append raw coordinates bypassing OSM middleware
-      form.append('coordinates', JSON.stringify([coords[0], coords[1]]));
+      // Append raw coordinates in GeoJSON order [lng, lat] for MongoDB
+      form.append('coordinates', JSON.stringify([coords[1], coords[0]]));
+
+      // Append userId for auth associating
+      if (user) form.append('userId', user.uid);
+
+      // Get auth token
+      const token = await user?.getIdToken();
 
       // Submit to backend
       const response = await axios.post('/api/potholes', form, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (response.data?.success) {
@@ -171,16 +205,16 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
   };
 
   return (
-    <div className="w-full flex flex-col md:flex-row gap-8 p-6 animate-in fade-in duration-500">
+    <div className="w-full flex flex-col md:flex-row gap-8 p-6 animate-in fade-in duration-500 bg-black text-white rounded-2xl">
       
       {/* Left: Map Preview */}
-      <div className="w-full md:w-1/2 flex flex-col rounded-xl overflow-hidden shadow-lg border border-gray-200">
-        <div className="bg-brown-600 text-white p-3 flex justify-between items-center z-10">
-          <span className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" /> Selected Location</span>
+      <div className="w-full md:w-1/2 flex flex-col rounded-xl overflow-hidden shadow-2xl border border-white/10">
+        <div className="bg-zinc-900 text-white p-4 flex justify-between items-center z-10 border-b border-white/5">
+          <span className="font-bold flex items-center gap-2"><MapPin className="w-4 h-4 text-green" /> Selected Location</span>
           <div className="flex items-center gap-3">
-            {isLocating && <span className="text-xs bg-white/20 px-2 py-1 rounded animate-pulse">Locating...</span>}
-            <button type="button" onClick={handleLocateMe} className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-              <Locate className="w-4 h-4" /> Locate Me
+            {isLocating && <span className="text-[10px] bg-green/20 text-green px-2 py-1 rounded-full animate-pulse uppercase font-black">Locating...</span>}
+            <button type="button" onClick={handleLocateMe} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 active:bg-white/30 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition-all">
+              <Locate className="w-3.5 h-3.5" /> Locate Me
             </button>
           </div>
         </div>
@@ -190,7 +224,18 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
               attribution='&copy; OpenStreetMap contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <Marker position={coords} />
+            {/* Background Potholes */}
+            {nearbyPotholes.map(p => {
+               if(p.location?.coordinates?.length === 2 && p.status !== 'rejected' && p.status !== 'repaired') {
+                 const pos = [p.location.coordinates[1], p.location.coordinates[0]];
+                 return <Marker key={p._id} position={pos} icon={createContextIcon()} interactive={false} />
+               }
+               return null;
+            })}
+
+            {/* Currently Selected Pothole */}
+            <Marker position={coords} zIndexOffset={1000} />
+            
             <MapUpdater center={coords} />
             <MapClicker setCoords={setCoords} reverseGeocode={reverseGeocode} />
           </MapContainer>
@@ -199,7 +244,8 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
 
       {/* Right: Address Form */}
       <div className="w-full md:w-1/2 flex flex-col">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Location Details</h3>
+          <h3 className="text-3xl font-black tracking-tighter text-white mb-2 uppercase">Location Details</h3>
+          <p className="text-gray-400 text-sm mb-6">Confirm the exact address where the road anomaly is located.</p>
           
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm font-medium border border-red-200">
@@ -211,18 +257,18 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Street *</label>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5">Street *</label>
                 <input 
                   required type="text" name="street" value={formData.street} onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-shadow"
+                  className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-green focus:border-green outline-none transition-all placeholder:text-zinc-600"
                   placeholder="123 Main Rd"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Suburb / City *</label>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5">Suburb / City *</label>
                 <input 
                   required type="text" name="city" value={formData.city} onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-shadow"
+                  className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-green focus:border-green outline-none transition-all placeholder:text-zinc-600"
                   placeholder="Sandton"
                 />
               </div>
@@ -230,38 +276,38 @@ export default function FormStep({ file, verificationData, onSubmissionSuccess, 
 
             <div className="grid grid-cols-2 gap-4">
                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Province *</label>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5">Province *</label>
                   <input 
                     required type="text" name="province" value={formData.province} onChange={handleChange}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-shadow"
+                    className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-green focus:border-green outline-none transition-all placeholder:text-zinc-600"
                     placeholder="Harare Province"
                   />
                </div>
                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5">Country</label>
                   <input 
                     disabled type="text" name="country" value={formData.country} 
-                    className="w-full p-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-500 cursor-not-allowed"
+                    className="w-full p-3 bg-zinc-800 border border-white/5 rounded-xl text-zinc-500 cursor-not-allowed opacity-50"
                   />
                </div>
             </div>
 
-            <hr className="my-2 border-gray-200" />
+            <hr className="my-2 border-white/10" />
             
-            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Optional Contact Info</h4>
+            <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Optional Contact Info</h4>
 
             <div className="grid grid-cols-2 gap-4">
                <div>
                 <input 
                   type="text" name="name" value={formData.name} onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-green placeholder:text-zinc-600"
                   placeholder="Your Name"
                 />
                </div>
                <div>
                 <input 
                   type="text" name="phone" value={formData.phone} onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-green placeholder:text-zinc-600"
                   placeholder="Phone Number"
                 />
                </div>

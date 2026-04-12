@@ -28,7 +28,8 @@ const reportPothole = async (req, res) => {
     const { 
         street, surburb, city, province, country, coordinates, 
         email, name, phone, 
-        isPothole, confidenceScore, severity 
+        isPothole, confidenceScore, severity,
+        userId
     } = req.body;
 
     // Build a relative URL path that can be served statically, e.g. /uploads/pothole-123.jpg
@@ -37,6 +38,7 @@ const reportPothole = async (req, res) => {
     try {
         // 3. Build and save the pothole document
         const pothole = new Pothole({
+            userId,
             imageUrl,
             location: {
                 type: 'Point',
@@ -108,5 +110,39 @@ const deletePothole = async (req, res) => {
     }
 };
 
-module.exports = { reportPothole, getAllPotholes, deletePothole };
+const updatePotholeStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    // We will allow the frontend to easily test, but we still ensure status is valid
+    const validStatuses = ['reported', 'verified', 'assigned', 'in_progress', 'repaired', 'rejected'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid status provided.'
+        });
+    }
 
+    try {
+        const updated = await Pothole.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
+        if (!updated) {
+            return res.status(404).json({
+                success: false,
+                message: 'Pothole report not found'
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: 'Status updated successfully',
+            data: updated
+        });
+    } catch (err) {
+        console.error('[updatePotholeStatus] Error:', err.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update pothole status. Please try again.',
+        });
+    }
+};
+
+module.exports = { reportPothole, getAllPotholes, deletePothole, updatePotholeStatus };

@@ -18,34 +18,34 @@ export default function UploadStep({ onFileSelect }) {
   });
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-2">Report a Pothole</h2>
-      <p className="text-gray-500 mb-8 max-w-lg text-center">
-        Upload an image of the pothole. Our AI will verify it instantly before we collect the location details.
+    <div className="w-full flex flex-col items-center justify-center p-8 bg-white">
+      <h2 className="text-4xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Report a Pothole</h2>
+      <p className="text-gray-500 mb-8 max-w-lg text-center font-medium">
+        Upload a clear image of the road anomaly. Our AI will verify it instantly before we collect location details.
       </p>
 
       <div 
         {...getRootProps()} 
-        className={`w-full max-w-2xl p-12 border-4 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
+        className={`w-full max-w-2xl p-16 border-4 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-500 scale-95 ${
           isDragActive 
-            ? 'border-green-500 bg-green-50 scale-105' 
-            : 'border-gray-300 hover:border-brown hover:bg-gray-50'
+            ? 'border-green bg-green-50 scale-100 shadow-xl' 
+            : 'border-gray-200 hover:border-green/50 hover:bg-gray-50'
         }`}
       >
         <input {...getInputProps()} />
         <UploadCloud className={`w-20 h-20 mb-6 transition-colors duration-300 ${isDragActive ? 'text-green-500' : 'text-gray-400'}`} />
         
         {isDragActive ? (
-          <p className="text-2xl font-semibold text-green-600">Drop the image here...</p>
+          <p className="text-2xl font-black text-green tracking-tight uppercase">Drop the image here...</p>
         ) : (
           <div className="text-center">
-            <p className="text-xl font-semibold text-gray-700 mb-2">
+            <p className="text-xl font-bold text-gray-900 mb-2 uppercase">
               Drag & drop an image here
             </p>
-            <p className="text-gray-500">
+            <p className="text-gray-500 font-medium">
               or click to browse your files
             </p>
-            <p className="text-xs text-gray-400 mt-4 font-medium uppercase tracking-wider">
+            <p className="text-[10px] text-gray-400 mt-6 font-black uppercase tracking-[0.3em]">
               Supports JPG, PNG, WEBP up to 5MB
             </p>
           </div>

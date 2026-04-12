@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const potholeSchema = new mongoose.Schema({
+    // user id for the user who reported the pothole
+    userId: {
+        type: String,
+        required: true,
+        index: true
+    },
     // image url
     imageUrl: {
         type: String,
@@ -52,7 +58,7 @@ const potholeSchema = new mongoose.Schema({
     // Workflow Status
     status: {
         type: String,
-        enum: ['reported', 'verified', 'dispatched', 'repaired', 'rejected'],
+        enum: ['reported', 'verified', 'assigned', 'in_progress', 'repaired', 'rejected'],
         default: 'reported'
     },
 
