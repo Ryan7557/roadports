@@ -81,7 +81,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ─── Rate Limiters ─────────────────────────────────────────────────────────────
 const reportLimiter = rateLimit({
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 1000, // TODO: lower back to 10 before production
+    max: 20, // TODO: lower back to 10 before production
     message: { success: false, message: "Daily report limit reached. Please wait 24 hours before submitting more data." },
     standardHeaders: true,
     legacyHeaders: false,
