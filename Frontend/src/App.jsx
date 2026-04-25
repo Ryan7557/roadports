@@ -6,13 +6,16 @@ import UploadStep from './components/UploadStep';
 import VerifyStep from './components/VerifyStep';
 import FormStep from './components/FormStep';
 import Dashboard from './components/Dashboard';
+import MinistryDashboard from './components/MinistryDashboard';
 import PillNav from './components/PillNav';
+import { ReportSkeleton } from './components/Skeletons';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
-import { CheckCircle2, RefreshCw, LayoutDashboard, Flag } from 'lucide-react';
+import { CheckCircle2, RefreshCw, LayoutDashboard, Flag, Shield } from 'lucide-react';
 
 function App() {
   const [view, setView] = useState('report');
   const [user, setUser] = useState(null);
+  const [initializing, setInitializing] = useState(true);
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [verificationData, setVerificationData] = useState(null);
@@ -20,6 +23,7 @@ function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setInitializing(false);
     });
     return () => unsubscribe();
   }, []);
@@ -72,7 +76,8 @@ function App() {
             logoAlt="Roadports"
             items={[
               { label: 'Report', href: 'report' },
-              { label: 'Dashboard', href: 'dashboard' }
+              { label: 'My Reports', href: 'dashboard' },
+              { label: 'Ministry', href: 'ministry' }
             ]}
             activeHref={view}
             baseColor="#fff"
@@ -112,7 +117,8 @@ function App() {
           logo={null}
           items={[
             { label: 'Report', href: 'report' },
-            { label: 'Dashboard', href: 'dashboard' }
+            { label: 'My Reports', href: 'dashboard' },
+            { label: 'Ministry', href: 'ministry' }
           ]}
           activeHref={view}
           baseColor="#000"
@@ -128,9 +134,14 @@ function App() {
         <div className="w-full max-w-7xl flex-1 flex mx-auto">
           <Dashboard user={user} />
         </div>
+      ) : view === 'ministry' ? (
+        <div className="w-full max-w-7xl flex-1 flex mx-auto">
+          <MinistryDashboard user={user} />
+        </div>
+      ) : initializing ? (
+        <ReportSkeleton />
       ) : (
         <main className="flex-1 w-full max-w-5xl p-4 md:p-6 mt-4 md:mt-8 flex flex-col items-center">
-
           {/* Progress Bar */}
           <div className="w-full max-w-sm flex items-center justify-between mb-8 opacity-70">
             <StepDot active={step >= 1} text="Image" />

@@ -30,9 +30,9 @@ const potholeSchema = new mongoose.Schema({
     address: {
         street: String,
         surburb: String,
-        city: { type: String, default: 'Johannesburg' },
-        province: { type: String, default: 'Gauteng' },
-        country: { type: String, default: 'South Africa' }
+        city: { type: String, default: 'Harare' },
+        province: { type: String, default: 'Harare' },
+        country: { type: String, default: 'Zimbabwe' }
     },
 
     // AI verification Data

@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "agenda": "^5.0.0",
+    "aws-sdk": "^2.1693.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
@@ -18,10 +20,12 @@
     "express-rate-limit": "^8.3.2",
     "firebase-admin": "^13.8.0",
     "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "mongodb": "^7.1.1",
     "mongoose": "^9.4.1",
     "multer": "^2.1.1",
     "node-geocoder": "^4.4.1",
+    "nodemailer": "^8.0.5",
     "zod": "^4.3.6"
   }
 }

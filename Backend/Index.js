@@ -4,9 +4,15 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
+const hpp = require('hpp');
 require('dotenv').config();
-const connectDB = require('./common/db');
+const connectDB = require('./common/config/db');
 const admin = require('firebase-admin');
+const globalErrorHandler = require('./common/middlewares/errorHandler');
+
+// Initialize background jobs
+const agenda = require('./common/jobs/agenda');
+require('./common/jobs/emailJob')(agenda);
 
 // Initialize Firebase Admin
 admin.initializeApp({
@@ -38,7 +44,7 @@ app.use(cors({
             callback(new Error(`CORS policy: origin "${origin}" is not allowed.`));
         }
     },
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -56,6 +62,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// ─── Security: Parameter Pollution Protection ───────────────────────────────
+app.use(hpp());
+
 // ─── Request Logger ───────────────────────────────────────────────────────────
 app.use((req, res, next) => {
     const start = Date.now();
@@ -71,9 +80,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Rate Limiters ─────────────────────────────────────────────────────────────
 const reportLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
-    message: { success: false, message: "Report limit reached. Please wait before submitting more." },
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 1000, // TODO: lower back to 10 before production
+    message: { success: false, message: "Daily report limit reached. Please wait 24 hours before submitting more data." },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -96,18 +105,9 @@ app.use('/api/potholes', reportLimiter, potholeRoutes);
 app.use('/api/', generalLimiter);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
-    // CORS errors
-    if (err.message?.startsWith('CORS policy')) {
-        return res.status(403).json({ success: false, message: err.message });
-    }
-    // Multer file errors (wrong file type etc.)
-    if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({ success: false, message: 'File too large. Maximum size is 5MB.' });
-    }
-    console.error('[Global Error]', err.message);
-    res.status(500).json({ success: false, message: 'An unexpected server error occurred.' });
-});
+// Must be registered LAST — after all routes and middleware.
+// Express identifies this as an error handler because it takes 4 arguments: (err, req, res, next)
+app.use(globalErrorHandler);
 
 // ─── Database & Server ─────────────────────────────────────────────────────────
 connectDB();

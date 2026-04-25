@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, Navigation, AlertTriangle, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react';
+import { RefreshCw, Navigation, AlertTriangle, CheckCircle, Clock, XCircle, Shield } from 'lucide-react';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { PotholeCardSkeleton, MapSkeleton } from './Skeletons';
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/animate-ui/components/radix/dropdown-menu';
 
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { StatsSkeleton, MapSkeleton, PotholeCardSkeleton } from './Skeletons';
 
 const SEVERITY_COLORS = {
   critical: 'bg-red-500 text-white',
@@ -34,17 +31,16 @@ const STATUS_COLORS = {
 };
 
 const MARKER_COLORS = {
-  reported: '#ef4444', 
-  verified: '#6366f1', 
-  assigned: '#f59e0b', 
-  in_progress: '#3b82f6', 
-  repaired: '#10b981', 
-  rejected: '#9ca3af', 
+  reported: '#ef4444',
+  verified: '#6366f1',
+  assigned: '#f59e0b',
+  in_progress: '#3b82f6',
+  repaired: '#10b981',
+  rejected: '#9ca3af',
 };
 
 const createMarkerIcon = (status) => {
   const color = MARKER_COLORS[status] || '#9ca3af';
-  // A glowing pin icon indicating status
   return L.divIcon({
     className: 'bg-transparent border-none',
     html: `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px ${color}80;"></div>`,
@@ -55,13 +51,12 @@ const createMarkerIcon = (status) => {
 
 const STATUS_OPTIONS = ['reported', 'verified', 'assigned', 'in_progress', 'repaired', 'rejected'];
 
-// Create an exact URL path mapper assuming dev backend is running on 5001 or proxied.
 const getImageUrl = (path) => {
   if (!path) return '';
   return path;
 };
 
-export default function Dashboard({ user }) {
+export default function MinistryDashboard({ user }) {
   const [potholes, setPotholes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -84,35 +79,17 @@ export default function Dashboard({ user }) {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this pothole report?')) return;
-
+  const handleStatusChange = async (id, newStatus) => {
     try {
       const token = await user?.getIdToken();
-      const res = await axios.delete(`/api/potholes/${id}`, {
+      const res = await axios.patch(`/api/potholes/${id}/status`, { status: newStatus }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.data?.success) {
-        setPotholes(prev => prev.filter(p => p._id !== id));
+        setPotholes(prev => prev.map(p => p._id === id ? { ...p, status: newStatus } : p));
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete pothole report');
-    }
-  };
-
-
-
-  const handleUpdateReporter = async (id, name, phone) => {
-    try {
-      const token = await user?.getIdToken();
-      const res = await axios.put(`/api/potholes/${id}/reporter`, { name, phone }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.data?.success) {
-        setPotholes(prev => prev.map(p => p._id === id ? { ...p, reportedBy: { ...p.reportedBy, name, phone } } : p));
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update profile');
+      alert(err.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -120,12 +97,24 @@ export default function Dashboard({ user }) {
     fetchPotholes();
   }, []);
 
+  // Stats
+  const totalReports = potholes.length;
+  const repairedCount = potholes.filter(p => p.status === 'repaired').length;
+  const pendingCount = potholes.filter(p => ['reported', 'verified', 'assigned', 'in_progress'].includes(p.status)).length;
+  const rejectedCount = potholes.filter(p => p.status === 'rejected').length;
+
   return (
     <div className="w-full flex-1 flex flex-col p-6 animate-in fade-in duration-500">
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">My Reports</h2>
-          <p className="text-gray-500 mt-1 font-medium">Track the progress of your submitted pothole reports.</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+            <Shield className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800 tracking-tight">Ministry Dashboard</h2>
+            <p className="text-gray-500 mt-0.5 font-medium">Municipal infrastructure management & lifecycle control.</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <RippleButton
@@ -141,7 +130,31 @@ export default function Dashboard({ user }) {
         </div>
       </div>
 
-      {/* Public Progress Map */}
+      {/* Stats Row */}
+      {loading && potholes.length === 0 ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Total Reports</p>
+            <p className="text-2xl font-black text-gray-800">{totalReports}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-green-200 p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-green-500 mb-1">Repaired</p>
+            <p className="text-2xl font-black text-green-600">{repairedCount}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-blue-200 p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">Pending</p>
+            <p className="text-2xl font-black text-blue-600">{pendingCount}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Rejected</p>
+            <p className="text-2xl font-black text-gray-500">{rejectedCount}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Live Incident Map */}
       {loading && potholes.length === 0 ? (
         <MapSkeleton />
       ) : (
@@ -173,25 +186,16 @@ export default function Dashboard({ user }) {
                 {potholes.map((p) => {
                    if (p.location?.coordinates?.length === 2) {
                      const [c0, c1] = p.location.coordinates;
-                     
-                     // GeoJSON stores [lng, lat]. Old data may have been saved as [lat, lng].
-                     // Heuristic: if c0 is negative (like Harare lat ~-17) and c1 is positive and large 
-                     // (like Harare lng ~31), the data was stored in wrong [lat, lng] order — use as-is for Leaflet.
-                     // If c0 is positive and large (lng) and c1 is negative (lat), it is correct GeoJSON — swap for Leaflet.
                      let pos;
                      if (c0 < 0 && c1 > 0) {
-                       // Stored as [lat, lng] — use directly since Leaflet wants [lat, lng]
                        pos = [c0, c1];
                      } else {
-                       // Correct GeoJSON [lng, lat] — swap for Leaflet
                        pos = [c1, c0];
                      }
-                     
-                     // Determine if we should draw a heatmap-style radius
                      const severity = p.verification?.severity || 'low';
                      const isHotspot = severity === 'high' || severity === 'critical';
                      const radiusSize = severity === 'critical' ? 400 : 200;
-                     const heatColor = severity === 'critical' ? '#ef4444' : '#f59e0b'; // red or orange
+                     const heatColor = severity === 'critical' ? '#ef4444' : '#f59e0b';
   
                      return (
                        <React.Fragment key={p._id}>
@@ -222,7 +226,6 @@ export default function Dashboard({ user }) {
         </div>
       )}
 
-
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 mb-6 font-medium flex items-center gap-2">
           <AlertTriangle className="w-5 h-5" /> {error}
@@ -230,7 +233,7 @@ export default function Dashboard({ user }) {
       )}
 
       {loading && potholes.length === 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <PotholeCardSkeleton key={i} />
           ))}
@@ -238,18 +241,17 @@ export default function Dashboard({ user }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {potholes.map((p) => (
-            <PotholeCard 
-               key={p._id} 
-               pothole={p} 
-               onDelete={handleDelete} 
-               onUpdateReporter={handleUpdateReporter}
+            <MinistryPotholeCard
+               key={p._id}
+               pothole={p}
+               onStatusChange={handleStatusChange}
             />
           ))}
 
           {!loading && potholes.length === 0 && (
             <div className="col-span-full py-20 flex flex-col items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
               <CheckCircle className="w-12 h-12 text-gray-300 mb-2" />
-              <p className="text-gray-500 font-medium">No potholes have been recorded yet.</p>
+              <p className="text-gray-500 font-medium">No potholes have been reported yet.</p>
             </div>
           )}
         </div>
@@ -258,35 +260,16 @@ export default function Dashboard({ user }) {
   );
 }
 
-function PotholeCard({ pothole, onDelete, onUpdateReporter }) {
-  const { imageUrl, address, verification, status, createdAt } = pothole;
+function MinistryPotholeCard({ pothole, onStatusChange }) {
+  const { imageUrl, address, verification, status, createdAt, reportedBy } = pothole;
   const severityStr = verification?.severity || 'low';
   const isAIConfirmed = verification?.isPothole;
 
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState(pothole.reportedBy?.name || '');
-  const [phone, setPhone] = useState(pothole.reportedBy?.phone || '');
-
-  const handleSaveProfile = () => {
-    onUpdateReporter(pothole._id, name, phone);
-    setOpen(false);
-  };
-
-  // Format Date string softly
   const dateObj = new Date(createdAt);
   const formattedDate = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col relative group">
-      {/* Delete Button (Visible on Hover) */}
-      <button
-        onClick={() => onDelete(pothole._id)}
-        className="absolute top-3 left-3 z-10 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Delete Report"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-
       <div className="relative h-48 bg-gray-100 overflow-hidden">
         <img
           src={getImageUrl(imageUrl)}
@@ -308,9 +291,9 @@ function PotholeCard({ pothole, onDelete, onUpdateReporter }) {
               <span className="text-[10px] font-black uppercase tracking-tighter">AI Verified</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded shadow-md border border-red-600/20 backdrop-blur-sm">
-              <XCircle className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-black uppercase tracking-tighter">AI Rejected</span>
+            <div className="flex items-center gap-1 bg-orange-500 text-white px-2 py-1 rounded shadow-md border border-orange-600/20 backdrop-blur-sm">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Needs Manual Review</span>
             </div>
           )}
         </div>
@@ -323,67 +306,63 @@ function PotholeCard({ pothole, onDelete, onUpdateReporter }) {
             {formattedDate}
           </div>
 
-          <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700'}`}>
-            {status.replace('_', ' ')}
-          </span>
+          {/* Status Dropdown — always active for ministry */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider outline-none cursor-pointer border-0 shadow-sm transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700'}`}
+              >
+                {status.replace('_', ' ')}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              onClick={(e) => e.stopPropagation()}
+              sideOffset={6}
+              className="w-48 z-[9999] bg-black text-gray-100 rounded-xl shadow-2xl border border-white/10 p-2"
+            >
+              {STATUS_OPTIONS.map(opt => (
+                <DropdownMenuItem
+                  key={opt}
+                  onClick={(e) => {
+                     e.stopPropagation();
+                     if (status !== opt) {
+                       onStatusChange(pothole._id, opt);
+                     }
+                  }}
+                  className={`cursor-pointer mb-1 px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-2 relative z-10 ${status === opt ? 'bg-zinc-900 text-white outline outline-1 outline-white/20' : 'text-gray-300'}`}
+                >
+                  <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-inner ${STATUS_COLORS[opt]?.split(' ')[0] || 'bg-gray-400'}`}></div>
+                  {opt.replace('_', ' ')}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <div className="flex justify-between items-center mb-1">
-          <h3 className="text-lg font-bold text-gray-800 leading-tight flex items-start gap-1">
-            {address?.street || 'Unknown Street Pin'}
-          </h3>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <RippleButton variant="outline" className="h-7 px-3 text-xs flex items-center gap-1 border-gray-200">
-                Edit Profile
-                <RippleButtonRipples />
-              </RippleButton>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Edit profile</DialogTitle>
-                <DialogDescription>
-                  Make changes to your profile here. Click save when you're done.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor={`name-${pothole._id}`} className="text-right text-sm font-medium">Name</label>
-                  <input
-                    id={`name-${pothole._id}`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor={`phone-${pothole._id}`} className="text-right text-sm font-medium">Phone</label>
-                  <input
-                    id={`phone-${pothole._id}`}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <RippleButton onClick={handleSaveProfile} className="w-full sm:w-auto">
-                  Save
-                  <RippleButtonRipples />
-                </RippleButton>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <h3 className="text-lg font-bold text-gray-800 mb-1 leading-tight flex items-start gap-1">
+          {address?.street || 'Unknown Street Pin'}
+        </h3>
 
-        <div className="text-sm text-gray-500 mt-1 flex items-center gap-1 mb-4">
+        <div className="text-sm text-gray-500 mt-1 flex items-center gap-1 mb-2">
           <Navigation className="w-3.5 h-3.5 flex-shrink-0" />
           {address?.surburb || address?.city || 'Unknown Coordinates'}
         </div>
 
+        {/* Reporter info */}
+        {reportedBy && (reportedBy.name || reportedBy.phone || reportedBy.email) && (
+          <div className="text-xs text-gray-400 mb-4 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+            <p className="font-semibold text-gray-500 mb-0.5">Reporter</p>
+            {reportedBy.name && <p>{reportedBy.name}</p>}
+            {reportedBy.phone && <p>{reportedBy.phone}</p>}
+            {reportedBy.email && <p>{reportedBy.email}</p>}
+          </div>
+        )}
+
         <div className="mt-auto flex justify-between items-center bg-gray-50 -mx-5 -mb-5 px-5 py-3 border-t border-gray-100">
           <span className="text-xs font-medium text-gray-400 uppercase">
-            AI Scan Result: <span className={isAIConfirmed ? 'text-green-600' : 'text-red-500'}>{isAIConfirmed ? 'Valid Pothole' : 'Rejected'}</span>
+            AI Scan Result: <span className={isAIConfirmed ? 'text-green-600' : 'text-orange-500'}>{isAIConfirmed ? 'Valid Pothole' : 'Needs Review'}</span>
           </span>
           <span className="text-xs text-gray-400 font-semibold">
             {(verification?.confidenceScore * 100).toFixed(0)}% Confidence

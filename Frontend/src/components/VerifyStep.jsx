@@ -126,14 +126,23 @@ export default function VerifyStep({ file, onVerifySuccess, onReset }) {
       {status === 'failed' && (
         <div className="text-center text-red-600">
           <h3 className="text-3xl font-black mb-2 uppercase tracking-tighter italic">No Anomaly Detected</h3>
-          <p className="text-gray-600 mb-8 max-w-sm font-medium">Our AI couldn't find a clear pothole in this image. Review the photo and try again.</p>
-          <RippleButton 
-            onClick={onReset}
-            className="px-8 py-6 bg-red-50 text-red-600 rounded-xl font-bold uppercase tracking-widest hover:bg-red-100 transition-all border border-red-200"
-          >
-            <RippleButtonRipples />
-            Try Another Image
-          </RippleButton>
+          <p className="text-gray-600 mb-6 max-w-sm font-medium mx-auto">Our AI couldn't find a clear pothole in this image. Review the photo and try again, or submit it for manual review.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <RippleButton 
+              onClick={onReset}
+              className="px-6 py-4 bg-red-50 text-red-600 rounded-xl font-bold uppercase tracking-wider hover:bg-red-100 transition-all border border-red-200"
+            >
+              <RippleButtonRipples />
+              Try Another Image
+            </RippleButton>
+            <RippleButton 
+              onClick={() => onVerifySuccess({ isPothole: false, confidenceScore: 0, severity: 'low' })}
+              className="px-6 py-4 bg-red-500 text-white rounded-xl font-bold uppercase tracking-wider hover:bg-red-600 transition-colors shadow-md"
+            >
+              <RippleButtonRipples />
+              Submit for Manual Review
+            </RippleButton>
+          </div>
         </div>
       )}
       
@@ -143,7 +152,7 @@ export default function VerifyStep({ file, onVerifySuccess, onReset }) {
           <h3 className="text-3xl font-black mb-2 uppercase tracking-tighter italic text-amber-600">AI Proxy Offline</h3>
           <p className="text-gray-600 mb-8 max-w-sm font-medium">We hit a snag reaching the AI service. You can skip and proceed manually.</p>
           <RippleButton 
-            onClick={onVerifySuccess}
+            onClick={() => onVerifySuccess({ isPothole: false, confidenceScore: 0, severity: 'low' })}
             className="px-6 py-6 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors shadow-md"
           >
             <RippleButtonRipples />

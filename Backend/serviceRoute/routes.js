@@ -4,7 +4,7 @@ const router = express.Router();
 const upload = require('../common/middlewares/upload');
 const { geocodeAddress } = require('../common/middlewares/geocode');
 const { verifyUser } = require('../common/middlewares/auth');
-const { reportPothole, getAllPotholes, deletePothole, updatePotholeStatus } = require('./controller');
+const { reportPothole, getAllPotholes, deletePothole, updatePotholeStatus, updatePotholeReporter } = require('./controller');
 
 // POST /api/potholes  (multipart/form-data)
 // Pipeline: upload image → verify user → geocode address → validate + save
@@ -18,5 +18,8 @@ router.delete('/:id', verifyUser, deletePothole);
 
 // PATCH /api/potholes/:id/status
 router.patch('/:id/status', verifyUser, updatePotholeStatus);
+
+// PUT /api/potholes/:id/reporter
+router.put('/:id/reporter', verifyUser, updatePotholeReporter);
 
 module.exports = router;

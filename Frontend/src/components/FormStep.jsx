@@ -285,10 +285,22 @@ export default function FormStep({ file, verificationData, user, onSubmissionSuc
                </div>
                <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5">Country</label>
-                  <input 
-                    disabled type="text" name="country" value={formData.country} 
-                    className="w-full p-3 bg-zinc-800 border border-white/5 rounded-xl text-zinc-500 cursor-not-allowed opacity-50"
-                  />
+                  <select 
+                    name="country" 
+                    value={formData.country} 
+                    onChange={(e) => {
+                      handleChange(e);
+                      if (e.target.value === 'South Africa') {
+                        setCoords([-26.2041, 28.0473]); // Johannesburg
+                      } else {
+                        setCoords([-17.8248, 31.0530]); // Harare
+                      }
+                    }}
+                    className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-green transition-all"
+                  >
+                    <option value="Zimbabwe">Zimbabwe</option>
+                    <option value="South Africa">South Africa</option>
+                  </select>
                </div>
             </div>
 
@@ -309,6 +321,13 @@ export default function FormStep({ file, verificationData, user, onSubmissionSuc
                   type="text" name="phone" value={formData.phone} onChange={handleChange}
                   className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-green placeholder:text-zinc-600"
                   placeholder="Phone Number"
+                />
+               </div>
+               <div className="col-span-2">
+                <input 
+                  type="email" name="email" value={formData.email} onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-green placeholder:text-zinc-600"
+                  placeholder="Email Address (for status updates)"
                 />
                </div>
             </div>
