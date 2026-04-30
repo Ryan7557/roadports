@@ -11,6 +11,7 @@ import PillNav from './components/PillNav';
 import { ReportSkeleton } from './components/Skeletons';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
 import { CheckCircle2, RefreshCw, LayoutDashboard, Flag, Shield } from 'lucide-react';
+import Prism from './components/Prism';
 
 function App() {
   const [view, setView] = useState('report');
@@ -59,14 +60,31 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center bg-transparent">
+
+      {/* Prism WebGL Background — fixed behind everything */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-30">
+        <Prism
+          animationType="rotate"
+          timeScale={0.3}
+          height={3.5}
+          baseWidth={5.5}
+          scale={3.6}
+          hueShift={0}
+          colorFrequency={1}
+          noise={0}
+          glow={1}
+          bloom={1.2}
+          transparent={true}
+        />
+      </div>
 
       {/* Main Header Layout */}
       <header className="w-full max-w-7xl px-6 h-24 flex items-center justify-between lg:grid lg:grid-cols-3 z-[1001] relative">
 
         {/* Branding (Left) */}
         <div className="flex items-center">
-          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-gray-900">ROADPORTS AI</h1>
+          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white drop-shadow-md">ROADPORTS AI</h1>
         </div>
 
         {/* Navigation (Center - Desktop) */}
