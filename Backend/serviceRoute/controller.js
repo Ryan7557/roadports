@@ -1,9 +1,11 @@
 const path = require('path');
+const fs = require('fs');
 const Pothole = require('../common/models/Potholes');
 const { potholeSchema } = require('../common/validations/validation');
 const AppError = require('../common/utils/AppError');
 const asyncCatch = require('../common/middlewares/asyncCatch');
 const agenda = require('../common/jobs/agenda');
+const { uploadImage } = require('../common/services/supabase');
 
 /**
  * POST /api/potholes  (multipart/form-data)
@@ -20,6 +22,8 @@ const reportPothole = asyncCatch(async (req, res, next) => {
     if (!result.success) {
         const errors = result.error.flatten().fieldErrors;
         console.error('[reportPothole] Validation Error:', errors);
+        // Clean up temp file before returning error
+        fs.unlink(req.file.path, () => {});
         return res.status(400).json({ success: false, errors });
     }
 
@@ -30,17 +34,22 @@ const reportPothole = asyncCatch(async (req, res, next) => {
         userId
     } = req.body;
 
-    // Build a relative URL path that can be served statically, e.g. /uploads/pothole-123.jpg
-    const imageUrl = `/uploads/${path.basename(req.file.path)}`;
+    // 3. Upload image to Supabase Storage
+    const fileName = `pothole-${Date.now()}-${path.basename(req.file.originalname || req.file.filename || 'image.jpg')}`;
+    const imageUrl = await uploadImage(req.file.path, fileName, req.file.mimetype);
 
-    // 3. Build and save the pothole document
-    // asyncCatch will catch any Mongoose errors and forward them to globalErrorHandler
+    // 4. Delete temp file from disk after upload
+    fs.unlink(req.file.path, (err) => {
+        if (err) console.warn('⚠️  Could not delete temp file:', req.file.path);
+    });
+
+    // 5. Build and save the pothole document
     const pothole = new Pothole({
         userId,
         imageUrl,
         location: {
             type: 'Point',
-            coordinates, // [lng, lat] — attached by geocodeAddress middleware
+            coordinates,
         },
         address: { street, surburb, city, province, country },
         reportedBy: { email, name, phone },

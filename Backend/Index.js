@@ -76,7 +76,7 @@ app.use((req, res, next) => {
 });
 
 // ─── Static File Serving ──────────────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Images are now stored on Supabase Storage — no local /uploads directory needed.
 
 // ─── Rate Limiters ─────────────────────────────────────────────────────────────
 const reportLimiter = rateLimit({
@@ -109,8 +109,11 @@ app.use('/api/', generalLimiter);
 // Express identifies this as an error handler because it takes 4 arguments: (err, req, res, next)
 app.use(globalErrorHandler);
 
+const { verifyConnection: verifySupabase } = require('./common/services/supabase');
+
 // ─── Database & Server ─────────────────────────────────────────────────────────
 connectDB();
+verifySupabase();
 
 app.listen(port, () => {
     console.log(`Server is running on port: ${port}`);
