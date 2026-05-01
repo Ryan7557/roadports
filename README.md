@@ -265,4 +265,4 @@ Triggered whenever:
 
 ## 📄 License
 
-MIT — Built by Muende Sitawana
+MIT — Built by Tawana Ryan Muendesi
