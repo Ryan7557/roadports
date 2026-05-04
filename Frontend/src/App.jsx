@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { auth } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
-import gsap from 'gsap';
 import UploadStep from './components/UploadStep';
 import VerifyStep from './components/VerifyStep';
 import FormStep from './components/FormStep';
@@ -10,17 +9,20 @@ import MinistryDashboard from './components/MinistryDashboard';
 import PillNav from './components/PillNav';
 import { ReportSkeleton } from './components/Skeletons';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
-import { CheckCircle2, RefreshCw, LayoutDashboard, Flag, Shield } from 'lucide-react';
+import { CheckCircle2, RefreshCw } from 'lucide-react';
 import Prism from './components/Prism';
+import useAppStore from './store/useAppStore';
 
 function App() {
-  const [view, setView] = useState('report');
-  const [user, setUser] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-  const [step, setStep] = useState(1);
-  const [file, setFile] = useState(null);
-  const [verificationData, setVerificationData] = useState(null);
+  // ─── Pull everything from the Zustand store ───────────────────────────────
+  const {
+    user, setUser, setInitializing, initializing,
+    view, setView,
+    step, file, verificationData,
+    handleFileSelect, handleVerifySuccess, handleSubmissionSuccess, handleReset
+  } = useAppStore();
 
+  // ─── Firebase Auth Listener — syncs user into the store ──────────────────
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -34,30 +36,11 @@ function App() {
     try {
       await signInWithPopup(auth, provider);
     } catch (err) {
-      console.error("Login failed", err);
+      console.error('Login failed', err);
     }
   };
 
   const handleLogout = () => signOut(auth);
-
-  const handleFileSelect = (selectedFile) => {
-    setFile(selectedFile);
-    setStep(2); // Move to verification
-  };
-
-  const handleVerifySuccess = (data) => {
-    setVerificationData(data);
-    setStep(3); // Move to form mapping
-  };
-
-  const handleSubmissionSuccess = () => {
-    setStep(4); // Success overlay
-  }
-
-  const handleReset = () => {
-    setFile(null);
-    setStep(1);
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-transparent">
@@ -129,7 +112,7 @@ function App() {
         </div>
       </header>
 
-      {/* Persistent Mobile Nav Bar (only visible on mobile) */}
+      {/* Persistent Mobile Nav Bar */}
       <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] flex justify-center">
         <PillNav
           logo={null}
@@ -169,8 +152,9 @@ function App() {
             <StepDot active={step >= 3} text="Location" />
           </div>
 
-          <div className={`w-full rounded-2xl shadow-2xl overflow-hidden min-h-[500px] flex items-stretch justify-center relative border transition-all duration-700 
+          <div className={`w-full rounded-2xl shadow-2xl overflow-hidden min-h-[500px] flex items-stretch justify-center relative border transition-all duration-700
             ${step === 3 ? 'bg-black border-white/5' : 'bg-white border-gray-100'}`}>
+
             {step === 1 && <UploadStep onFileSelect={handleFileSelect} />}
 
             {step === 2 && (
