@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, Navigation, AlertTriangle, CheckCircle, Clock, XCircle, Shield } from 'lucide-react';
+import { RefreshCw, Navigation, AlertTriangle, CheckCircle, Clock, XCircle, Shield, Trash2 } from 'lucide-react';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -73,7 +82,7 @@ export default function MinistryDashboard({ user }) {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch potholes. Ensure the backend is active on port 5002.');
+      setError('Failed to fetch potholes.');
     } finally {
       setLoading(false);
     }
@@ -90,6 +99,30 @@ export default function MinistryDashboard({ user }) {
       }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  const handleDelete = (id) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
+
+    try {
+      const token = await user?.getIdToken();
+      const res = await axios.delete(`/api/potholes/${deleteConfirmId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        setPotholes(prev => prev.filter(p => p._id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete pothole report');
+      setDeleteConfirmId(null);
     }
   };
 
@@ -241,26 +274,56 @@ export default function MinistryDashboard({ user }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {potholes.map((p) => (
-            <MinistryPotholeCard
-               key={p._id}
-               pothole={p}
-               onStatusChange={handleStatusChange}
+            <PotholeCard 
+               key={p._id} 
+               pothole={p} 
+               onStatusChange={handleStatusChange} 
+               onDelete={handleDelete}
             />
           ))}
 
           {!loading && potholes.length === 0 && (
             <div className="col-span-full py-20 flex flex-col items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
               <CheckCircle className="w-12 h-12 text-gray-300 mb-2" />
-              <p className="text-gray-500 font-medium">No potholes have been reported yet.</p>
+              <p className="text-gray-500 font-medium">No reports are pending action.</p>
             </div>
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Pothole Report</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this pothole report? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end mt-4">
+            <RippleButton 
+              variant="outline" 
+              onClick={() => setDeleteConfirmId(null)}
+              className="flex-1 sm:flex-none"
+            >
+              Cancel
+              <RippleButtonRipples />
+            </RippleButton>
+            <RippleButton 
+              onClick={handleConfirmDelete}
+              className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white"
+            >
+              Yes, Delete
+              <RippleButtonRipples />
+            </RippleButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function MinistryPotholeCard({ pothole, onStatusChange }) {
+function PotholeCard({ pothole, onStatusChange, onDelete }) {
   const { imageUrl, address, verification, status, createdAt, reportedBy } = pothole;
   const severityStr = verification?.severity || 'low';
   const isAIConfirmed = verification?.isPothole;
@@ -352,11 +415,29 @@ function MinistryPotholeCard({ pothole, onStatusChange }) {
 
         {/* Reporter info */}
         {reportedBy && (reportedBy.name || reportedBy.phone || reportedBy.email) && (
-          <div className="text-xs text-gray-400 mb-4 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+          <div className="text-xs text-gray-400 mb-4 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 relative group/reporter">
             <p className="font-semibold text-gray-500 mb-0.5">Reporter</p>
             {reportedBy.name && <p>{reportedBy.name}</p>}
             {reportedBy.phone && <p>{reportedBy.phone}</p>}
             {reportedBy.email && <p>{reportedBy.email}</p>}
+            
+            {/* Delete button — only visible when repaired */}
+            {status === 'repaired' && (
+              <div className="mt-3 pt-3 border-t border-gray-200/60">
+                <RippleButton 
+                  variant="ghost" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(pothole._id);
+                  }}
+                  className="w-full h-8 px-2 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Finalized Report
+                  <RippleButtonRipples />
+                </RippleButton>
+              </div>
+            )}
           </div>
         )}
 

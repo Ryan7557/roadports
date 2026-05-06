@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
 
-const Prism = ({
+const Prism = memo(({
   height = 3.5,
   baseWidth = 5.5,
   animationType = 'rotate',
@@ -15,7 +15,7 @@ const Prism = ({
   hoverStrength = 2,
   inertia = 0.05,
   bloom = 1,
-  suspendWhenOffscreen = false,
+  suspendWhenOffscreen = true,
   timeScale = 0.5
 }) => {
   const containerRef = useRef(null);
@@ -43,7 +43,7 @@ const Prism = ({
     const HOVSTR = Math.max(0, hoverStrength || 1);
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
     const renderer = new Renderer({
       dpr,
       alpha: transparent,
@@ -157,7 +157,7 @@ const Prism = ({
           wob = mat2(c0, c1, c2, c0);
         }
 
-        const int STEPS = 100;
+        const int STEPS = 64;
         for (int i = 0; i < STEPS; i++) {
           p = vec3(f, z);
           p.xz = p.xz * wob;
@@ -368,6 +368,6 @@ const Prism = ({
   ]);
 
   return <div className="w-full h-full relative" ref={containerRef} />;
-};
+});
 
 export default Prism;

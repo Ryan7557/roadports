@@ -1,7 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
@@ -9,6 +7,8 @@ require('dotenv').config();
 const connectDB = require('./common/config/db');
 const admin = require('firebase-admin');
 const globalErrorHandler = require('./common/middlewares/errorHandler');
+const compression = require('compression');
+const morgan = require('morgan');
 
 // Initialize background jobs
 const agenda = require('./common/jobs/agenda');
@@ -21,6 +21,14 @@ admin.initializeApp({
 
 const app = express();
 const port = process.env.PORT || 5002;
+
+// Enable 'trust proxy' if behind a proxy (Heroku, Vercel, Nginx, etc.)
+// This is critical for express-rate-limit to see the real client IP.
+app.set('trust proxy', 1);
+
+// ─── Middleware ─────────────────────────────────────────────────────────────
+app.use(compression()); // Compress all responses
+app.use(morgan('combined')); // Production-grade logging
 
 // ─── Security: HTTP Headers ─────────────────────────────────────────────────
 // Helmet adds headers like X-Frame-Options, X-Content-Type-Options, etc.
@@ -65,6 +73,8 @@ app.use((req, res, next) => {
 // ─── Security: Parameter Pollution Protection ───────────────────────────────
 app.use(hpp());
 
+const { generalLimiter } = require('./common/middlewares/rateLimiters');
+
 // ─── Request Logger ───────────────────────────────────────────────────────────
 app.use((req, res, next) => {
     const start = Date.now();
@@ -78,31 +88,14 @@ app.use((req, res, next) => {
 // ─── Static File Serving ──────────────────────────────────────────────────────
 // Images are now stored on Supabase Storage — no local /uploads directory needed.
 
-// ─── Rate Limiters ─────────────────────────────────────────────────────────────
-const reportLimiter = rateLimit({
-    windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 20, // TODO: lower back to 10 before production
-    message: { success: false, message: "Daily report limit reached. Please wait 24 hours before submitting more data." },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    message: { success: false, message: "Too many requests. Please try again after 15 minutes." },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
 // ─── Routes ────────────────────────────────────────────────────────────────────
 const potholeRoutes = require('./serviceRoute/routes');
 
-// NOTE: reportLimiter is now applied BEFORE the route handler (was broken before)
-app.use('/api/potholes', reportLimiter, potholeRoutes);
-
-// General limiter on all other API routes
+// Apply general limiter to all API routes
 app.use('/api/', generalLimiter);
+
+// Pothole routes
+app.use('/api/potholes', potholeRoutes);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────
 // Must be registered LAST — after all routes and middleware.

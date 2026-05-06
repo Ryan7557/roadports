@@ -78,25 +78,33 @@ export default function Dashboard({ user }) {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch potholes. Ensure the backend is active on port 5002.');
+      setError('Failed to fetch potholes.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this pothole report?')) return;
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  const handleDelete = (id) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
 
     try {
       const token = await user?.getIdToken();
-      const res = await axios.delete(`/api/potholes/${id}`, {
+      const res = await axios.delete(`/api/potholes/${deleteConfirmId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.data?.success) {
-        setPotholes(prev => prev.filter(p => p._id !== id));
+        setPotholes(prev => prev.filter(p => p._id !== deleteConfirmId));
+        setDeleteConfirmId(null);
       }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete pothole report');
+      setDeleteConfirmId(null);
     }
   };
 
@@ -254,6 +262,35 @@ export default function Dashboard({ user }) {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Pothole Report</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this pothole report? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end mt-4">
+            <RippleButton 
+              variant="outline" 
+              onClick={() => setDeleteConfirmId(null)}
+              className="flex-1 sm:flex-none"
+            >
+              Cancel
+              <RippleButtonRipples />
+            </RippleButton>
+            <RippleButton 
+              onClick={handleConfirmDelete}
+              className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white"
+            >
+              Yes, Delete
+              <RippleButtonRipples />
+            </RippleButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -278,14 +315,6 @@ function PotholeCard({ pothole, onDelete, onUpdateReporter }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col relative group">
-      {/* Delete Button (Visible on Hover) */}
-      <button
-        onClick={() => onDelete(pothole._id)}
-        className="absolute top-3 left-3 z-10 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Delete Report"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
 
       <div className="relative h-48 bg-gray-100 overflow-hidden">
         <img
@@ -332,48 +361,60 @@ function PotholeCard({ pothole, onDelete, onUpdateReporter }) {
           <h3 className="text-lg font-bold text-gray-800 leading-tight flex items-start gap-1">
             {address?.street || 'Unknown Street Pin'}
           </h3>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <RippleButton variant="outline" className="h-7 px-3 text-xs flex items-center gap-1 border-gray-200">
-                Edit Profile
-                <RippleButtonRipples />
-              </RippleButton>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Edit profile</DialogTitle>
-                <DialogDescription>
-                  Make changes to your profile here. Click save when you're done.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor={`name-${pothole._id}`} className="text-right text-sm font-medium">Name</label>
-                  <input
-                    id={`name-${pothole._id}`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor={`phone-${pothole._id}`} className="text-right text-sm font-medium">Phone</label>
-                  <input
-                    id={`phone-${pothole._id}`}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <RippleButton onClick={handleSaveProfile} className="w-full sm:w-auto">
-                  Save
+          <div className="flex flex-col items-end gap-2">
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <RippleButton variant="outline" className="h-7 px-3 text-xs flex items-center gap-1 border-gray-200">
+                  Edit Profile
                   <RippleButtonRipples />
                 </RippleButton>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Edit profile</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when you're done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor={`name-${pothole._id}`} className="text-right text-sm font-medium">Name</label>
+                    <input
+                      id={`name-${pothole._id}`}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor={`phone-${pothole._id}`} className="text-right text-sm font-medium">Phone</label>
+                    <input
+                      id={`phone-${pothole._id}`}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <RippleButton onClick={handleSaveProfile} className="w-full sm:w-auto">
+                    Save
+                    <RippleButtonRipples />
+                  </RippleButton>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <RippleButton 
+              variant="ghost" 
+              onClick={() => onDelete(pothole._id)}
+              className="h-7 px-2 text-xs flex items-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="w-3 h-3" />
+              Delete Report
+              <RippleButtonRipples />
+            </RippleButton>
+          </div>
         </div>
 
         <div className="text-sm text-gray-500 mt-1 flex items-center gap-1 mb-4">

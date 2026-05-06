@@ -67,7 +67,7 @@ function App() {
 
         {/* Branding (Left) */}
         <div className="flex items-center">
-          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white drop-shadow-md">ROADPORTS AI</h1>
+          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-black">ROADPORTS AI</h1>
         </div>
 
         {/* Navigation (Center - Desktop) */}
