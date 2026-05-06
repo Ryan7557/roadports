@@ -369,39 +369,57 @@ function PotholeCard({ pothole, onStatusChange, onDelete }) {
             {formattedDate}
           </div>
 
-          {/* Status Dropdown — always active for ministry */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider outline-none cursor-pointer border-0 shadow-sm transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700'}`}
-              >
-                {status.replace('_', ' ')}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              onClick={(e) => e.stopPropagation()}
-              sideOffset={6}
-              className="w-48 z-[9999] bg-black text-gray-100 rounded-xl shadow-2xl border border-white/10 p-2"
-            >
-              {STATUS_OPTIONS.map(opt => (
-                <DropdownMenuItem
-                  key={opt}
-                  onClick={(e) => {
-                     e.stopPropagation();
-                     if (status !== opt) {
-                       onStatusChange(pothole._id, opt);
-                     }
-                  }}
-                  className={`cursor-pointer mb-1 px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-2 relative z-10 ${status === opt ? 'bg-zinc-900 text-white outline outline-1 outline-white/20' : 'text-gray-300'}`}
+          <div className="flex flex-col items-end gap-2">
+            {/* Status Dropdown — always active for ministry */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider outline-none cursor-pointer border-0 shadow-sm transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700'}`}
                 >
-                  <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-inner ${STATUS_COLORS[opt]?.split(' ')[0] || 'bg-gray-400'}`}></div>
-                  {opt.replace('_', ' ')}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  {status.replace('_', ' ')}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                onClick={(e) => e.stopPropagation()}
+                sideOffset={6}
+                className="w-48 z-[9999] bg-black text-gray-100 rounded-xl shadow-2xl border border-white/10 p-2"
+              >
+                {STATUS_OPTIONS.map(opt => (
+                  <DropdownMenuItem
+                    key={opt}
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       if (status !== opt) {
+                         onStatusChange(pothole._id, opt);
+                       }
+                    }}
+                    className={`cursor-pointer mb-1 px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-2 relative z-10 ${status === opt ? 'bg-zinc-900 text-white outline outline-1 outline-white/20' : 'text-gray-300'}`}
+                  >
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-inner ${STATUS_COLORS[opt]?.split(' ')[0] || 'bg-gray-400'}`}></div>
+                    {opt.replace('_', ' ')}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Delete button — only visible when repaired */}
+            {status === 'repaired' && (
+              <RippleButton 
+                variant="ghost" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(pothole._id);
+                }}
+                className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Finalized
+                <RippleButtonRipples />
+              </RippleButton>
+            )}
+          </div>
         </div>
 
         <h3 className="text-lg font-bold text-gray-800 mb-1 leading-tight flex items-start gap-1">
@@ -415,29 +433,11 @@ function PotholeCard({ pothole, onStatusChange, onDelete }) {
 
         {/* Reporter info */}
         {reportedBy && (reportedBy.name || reportedBy.phone || reportedBy.email) && (
-          <div className="text-xs text-gray-400 mb-4 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 relative group/reporter">
+          <div className="text-xs text-gray-400 mb-4 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 relative">
             <p className="font-semibold text-gray-500 mb-0.5">Reporter</p>
             {reportedBy.name && <p>{reportedBy.name}</p>}
             {reportedBy.phone && <p>{reportedBy.phone}</p>}
             {reportedBy.email && <p>{reportedBy.email}</p>}
-            
-            {/* Delete button — only visible when repaired */}
-            {status === 'repaired' && (
-              <div className="mt-3 pt-3 border-t border-gray-200/60">
-                <RippleButton 
-                  variant="ghost" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(pothole._id);
-                  }}
-                  className="w-full h-8 px-2 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 transition-all"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Finalized Report
-                  <RippleButtonRipples />
-                </RippleButton>
-              </div>
-            )}
           </div>
         )}
 
