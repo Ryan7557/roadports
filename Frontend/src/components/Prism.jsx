@@ -44,11 +44,17 @@ const Prism = memo(({
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
     const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-    const renderer = new Renderer({
-      dpr,
-      alpha: transparent,
-      antialias: false
-    });
+    let renderer;
+    try {
+      renderer = new Renderer({
+        dpr,
+        alpha: transparent,
+        antialias: false
+      });
+    } catch (e) {
+      console.warn("WebGL not supported, skipping background animation:", e);
+      return;
+    }
     const gl = renderer.gl;
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.CULL_FACE);
