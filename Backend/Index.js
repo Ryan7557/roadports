@@ -88,6 +88,15 @@ app.use((req, res, next) => {
 // ─── Static File Serving ──────────────────────────────────────────────────────
 // Images are now stored on Supabase Storage — no local /uploads directory needed.
 
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+    res.json({
+        status: 'Roadports AI API is running',
+        version: '1.0.0',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // ─── Routes ────────────────────────────────────────────────────────────────────
 const potholeRoutes = require('./serviceRoute/routes');
 
@@ -108,6 +117,6 @@ const { verifyConnection: verifySupabase } = require('./common/services/supabase
 connectDB();
 verifySupabase();
 
-app.listen(port, () => {
-    console.log(`Server is running on port: ${port}`);
-});
+    app.listen(port, () => {
+        console.log(`Server is running on port: ${port}`);
+    });
