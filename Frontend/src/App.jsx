@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { auth } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 import UploadStep from './components/UploadStep';
@@ -9,9 +9,10 @@ import MinistryDashboard from './components/MinistryDashboard';
 import PillNav from './components/PillNav';
 import { ReportSkeleton } from './components/Skeletons';
 import { RippleButton, RippleButtonRipples } from '@/components/animate-ui/components/buttons/ripple';
-import { CheckCircle2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Menu, FileText, LayoutDashboard, Building2 } from 'lucide-react';
 import Prism from './components/Prism';
 import useAppStore from './store/useAppStore';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 
 function App() {
   // ─── Pull everything from the Zustand store ───────────────────────────────
@@ -21,6 +22,8 @@ function App() {
     step, file, verificationData,
     handleFileSelect, handleVerifySuccess, handleSubmissionSuccess, handleReset
   } = useAppStore();
+
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // ─── Firebase Auth Listener — syncs user into the store ──────────────────
   useEffect(() => {
@@ -66,7 +69,17 @@ function App() {
       <header className="w-full max-w-7xl px-6 h-24 flex items-center justify-between lg:grid lg:grid-cols-3 z-[1001] relative">
 
         {/* Branding (Left) */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          {/* Mobile hamburger — only visible on small screens */}
+          <button
+            id="mobile-menu-toggle"
+            className="lg:hidden flex flex-col items-center justify-center gap-[5px] w-9 h-9 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm cursor-pointer"
+            aria-label="Toggle navigation menu"
+            onClick={() => setMobileOpen(true)}
+          >
+            <span className="w-4 h-[2px] bg-gray-800 rounded-full block" />
+            <span className="w-4 h-[2px] bg-gray-800 rounded-full block" />
+          </button>
           <h1 className="text-xl md:text-2xl font-black tracking-tighter text-black">ROADPORTS AI</h1>
         </div>
 
@@ -112,23 +125,54 @@ function App() {
         </div>
       </header>
 
-      {/* Persistent Mobile Nav Bar */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] flex justify-center">
-        <PillNav
-          logo={null}
-          items={[
-            { label: 'Report', href: 'report' },
-            { label: 'My Reports', href: 'dashboard' },
-            { label: 'Ministry', href: 'ministry' }
-          ]}
-          activeHref={view}
-          baseColor="#000"
-          pillColor="#fff"
-          pillTextColor="#000"
-          onItemClick={(item) => setView(item.href)}
-          className="shadow-2xl"
-        />
-      </div>
+      {/* Mobile Drawer Navigation */}
+      <Drawer open={mobileOpen} onOpenChange={setMobileOpen} direction="left">
+        <DrawerContent className="h-full w-[80vw] max-w-xs bg-white flex flex-col">
+          <DrawerHeader className="border-b border-gray-100 pb-4">
+            <DrawerTitle className="text-lg font-black tracking-tighter uppercase text-black">
+              Roadports AI
+            </DrawerTitle>
+          </DrawerHeader>
+
+          {/* Nav Items */}
+          <nav className="flex-1 flex flex-col gap-1 p-4">
+            {[
+              { label: 'Report', href: 'report', icon: FileText, desc: 'Submit a new pothole' },
+              { label: 'My Reports', href: 'dashboard', icon: LayoutDashboard, desc: 'Track your reports' },
+              { label: 'Ministry', href: 'ministry', icon: Building2, desc: 'Admin dashboard' },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = view === item.href;
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => { setView(item.href); setMobileOpen(false); }}
+                  className={`flex items-center gap-4 w-full px-4 py-3.5 rounded-xl text-left transition-all duration-200 ${
+                    isActive
+                      ? 'bg-black text-white shadow-md'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  <div>
+                    <p className={`font-bold text-sm ${isActive ? 'text-white' : 'text-gray-900'}`}>{item.label}</p>
+                    <p className={`text-xs ${isActive ? 'text-white/70' : 'text-gray-400'}`}>{item.desc}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-100">
+            <DrawerClose asChild>
+              <button className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold hover:bg-gray-200 transition-colors">
+                Close Menu
+              </button>
+            </DrawerClose>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Main Container */}
       {view === 'dashboard' ? (
