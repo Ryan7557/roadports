@@ -395,7 +395,7 @@ function PotholeCard({ pothole, onStatusChange, onDelete }) {
                          onStatusChange(pothole._id, opt);
                        }
                     }}
-                    className={`cursor-pointer mb-1 px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-2 relative z-10 ${status === opt ? 'bg-zinc-900 text-white outline outline-1 outline-white/20' : 'text-gray-300'}`}
+                    className={`cursor-pointer mb-1 px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:text-green-400 transition-colors flex items-center gap-2 relative z-10 ${status === opt ? 'bg-zinc-900 text-white outline outline-1 outline-white/20' : 'text-gray-300'}`}
                   >
                     <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-inner ${STATUS_COLORS[opt]?.split(' ')[0] || 'bg-gray-400'}`}></div>
                     {opt.replace('_', ' ')}
