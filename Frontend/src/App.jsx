@@ -4,6 +4,7 @@ import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from
 import UploadStep from './components/UploadStep';
 import VerifyStep from './components/VerifyStep';
 import FormStep from './components/FormStep';
+import SignInPrompt from './components/SignInPrompt';
 import Dashboard from './components/Dashboard';
 import MinistryDashboard from './components/MinistryDashboard';
 import PillNav from './components/PillNav';
@@ -209,14 +210,21 @@ function App() {
               />
             )}
 
-            {step === 3 && user && (
-              <FormStep
-                file={file}
-                verificationData={verificationData}
-                user={user}
-                onSubmissionSuccess={handleSubmissionSuccess}
-                onCancel={handleReset}
-              />
+            {step === 3 && (
+              user ? (
+                <FormStep
+                  file={file}
+                  verificationData={verificationData}
+                  user={user}
+                  onSubmissionSuccess={handleSubmissionSuccess}
+                  onCancel={handleReset}
+                />
+              ) : (
+                <SignInPrompt
+                  onSignIn={handleLogin}
+                  onCancel={handleReset}
+                />
+              )
             )}
 
             {step === 4 && (

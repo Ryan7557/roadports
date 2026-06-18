@@ -183,11 +183,11 @@ export default function FormStep({ file, verificationData, user, onSubmissionSuc
       if (user) form.append('userId', user.uid);
 
       // Get auth token
-      const token = await user?.getIdToken();
+      const token = await user.getIdToken();
 
       // Submit to backend
       const response = await axios.post('/api/potholes', form, {
-        headers: { 
+        headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
         }
